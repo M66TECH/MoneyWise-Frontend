@@ -9,16 +9,16 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     }
   ],
+  "fallback": {
+    "source": "/(.*)",
+    "destination": "/index.html"
+  },
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -51,4 +51,3 @@
     "VITE_API_URL": "https://moneywise-backend-187q.onrender.com/api"
   }
 }
-
