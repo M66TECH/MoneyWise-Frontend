@@ -5,6 +5,20 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Empêcher le zoom automatique sur les champs de saisie sur iOS */
+  input, textarea, select {
+    font-size: 16px !important;
   }
 
   :root {
