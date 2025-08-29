@@ -43,6 +43,10 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "X-UA-Compatible",
+          "value": "IE=edge"
         }
       ]
     }
