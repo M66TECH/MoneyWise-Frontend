@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 /resources
+
+ZOOM_FIX_DOCUMENTATION.md
