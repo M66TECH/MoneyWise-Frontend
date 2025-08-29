@@ -18,7 +18,6 @@ export const getCategories = async (type = ""): Promise<Category[]> => {
     
     return [];
   } catch (error) {
-    console.error("Erreur categories:", error);
     return [];
   }
 };

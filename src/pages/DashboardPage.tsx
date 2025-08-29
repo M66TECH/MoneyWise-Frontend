@@ -12,6 +12,7 @@ import type { Transaction, Category } from '../types';
 import type { DashboardSummary } from '../services/dashboardService';
 import AlertManager from '../components/alerts/AlertManager';
 
+
 // Composant optimisé pour les statistiques
 const DashboardStats = React.memo(({ safeData }: { safeData: any }) => {
 
@@ -351,6 +352,8 @@ const DashboardPage = () => {
                         } : undefined}
                     />
                 </div>
+
+
             </div>
         </AppLayout>
     );

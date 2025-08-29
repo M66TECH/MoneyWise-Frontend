@@ -10,11 +10,36 @@ import TransactionModal from '../components/transactions/TransactionModal';
 import TransactionDetailsModal from '../components/transactions/TransactionDetailsModal';
 import { useTransactionAlerts } from '../hooks/useTransactionAlerts';
 import AlertNotification from '../components/alerts/AlertNotification';
+
 import type { Category, Transaction, CreateTransactionData, UpdateTransactionData } from '../types';
 import type { Alerte } from '../services/alertService';
 
 const TransactionsPage = () => {
     const { user } = useAuth();
+    
+    // Fonction utilitaire pour extraire l'ID utilisateur
+    const getUserId = (userData: any): number | null => {
+        if (!userData) return null;
+        
+        // Essayer différentes structures possibles
+        if (userData.utilisateur?.id) return userData.utilisateur.id;
+        if (userData.id) return userData.id;
+        if (typeof userData === 'object' && userData.id) return userData.id;
+        
+        return null;
+    };
+    
+    // Fonction utilitaire pour extraire l'ID utilisateur
+    const getUserId = (userData: any): number | null => {
+        if (!userData) return null;
+        
+        // Essayer différentes structures possibles
+        if (userData.utilisateur?.id) return userData.utilisateur.id;
+        if (userData.id) return userData.id;
+        if (typeof userData === 'object' && userData.id) return userData.id;
+        
+        return null;
+    };
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
@@ -53,7 +78,6 @@ const TransactionsPage = () => {
             try {
                 categoriesData = await getCategories();
             } catch (error) {
-                console.error('Erreur lors du chargement des catégories:', error);
                             // Données de test si l'API n'est pas disponible
             categoriesData = [
                 {
@@ -91,7 +115,6 @@ const TransactionsPage = () => {
             try {
                 transactionsData = await getTransactions();
             } catch (error) {
-                console.error('Erreur lors du chargement des transactions:', error);
                             // Données de test si l'API n'est pas disponible
             transactionsData = [
                 {
@@ -120,7 +143,6 @@ const TransactionsPage = () => {
             setCategories(categoriesData);
             setTransactions(transactionsData);
         } catch (error) {
-            console.error('Erreur lors du chargement des données:', error);
             toast.error('Erreur lors du chargement des données');
         } finally {
             setLoading(false);
@@ -139,11 +161,23 @@ const TransactionsPage = () => {
     };
 
     const handleEditTransaction = (transaction: Transaction) => {
+        console.log('✏️ Modification de transaction:', transaction);
+        console.log('👤 Utilisateur actuel:', user);
+        
+        const userId = getUserId(user);
+        if (!user || !userId) {
+            toast.error('Erreur: Utilisateur non connecté');
+            console.error('❌ Utilisateur non connecté pour la modification');
+            return;
+        }
+        
         setEditingTransaction(transaction);
         const category = categories.find(cat => cat.id === transaction.categorie_id);
         if (category) {
             setSelectedCategory(category);
             setIsTransactionModalOpen(true);
+        } else {
+            toast.error('Catégorie introuvable pour cette transaction');
         }
     };
 
@@ -154,7 +188,6 @@ const TransactionsPage = () => {
             toast.success('Transaction supprimée avec succès');
             fetchData();
         } catch (error) {
-            console.error('Erreur lors de la suppression:', error);
             // Simulation de succès pour les tests
             toast.success('Transaction supprimée avec succès (mode test)');
             fetchData();
@@ -164,29 +197,79 @@ const TransactionsPage = () => {
 
     const handleTransactionSubmit = async (data: CreateTransactionData | UpdateTransactionData) => {
         try {
+            
+            
+            let updatedTransaction: Transaction | null = null;
+            let newTransaction: Transaction | null = null;
+            
             if (editingTransaction) {
-                await updateTransaction(editingTransaction.id, data as UpdateTransactionData);
+                // Pour la mise à jour, on ne doit pas envoyer utilisateur_id
+                const updateData: UpdateTransactionData = {};
+                
+                // Ajouter seulement les champs qui ont des valeurs
+                if (data.montant !== undefined && data.montant !== null) {
+                    updateData.montant = data.montant;
+                }
+                if (data.description !== undefined && data.description !== null) {
+                    updateData.description = data.description;
+                }
+                if (data.type !== undefined && data.type !== null) {
+                    updateData.type = data.type;
+                }
+                if (data.categorie_id !== undefined && data.categorie_id !== null) {
+                    updateData.categorie_id = data.categorie_id;
+                }
+                
+                // Vérifier qu'on a au moins une donnée à mettre à jour
+                if (Object.keys(updateData).length === 0) {
+                    throw new Error('Aucune donnée à mettre à jour');
+                }
+                
+                updatedTransaction = await updateTransaction(editingTransaction.id, updateData);
                 toast.success('Transaction modifiée avec succès');
+                
+                // Mettre à jour directement l'état local
+                setTransactions(prevTransactions => {
+                    const updated = prevTransactions.map(t => 
+                        t.id === editingTransaction.id ? updatedTransaction! : t
+                    );
+                    return updated;
+                });
+                
+                // Réinitialiser l'état d'édition
+                setEditingTransaction(null);
             } else {
-                await createTransaction(data as CreateTransactionData);
+                newTransaction = await createTransaction(data as CreateTransactionData);
                 toast.success('Transaction créée avec succès');
+                
+                // Ajouter directement à l'état local
+                setTransactions(prevTransactions => {
+                    const updated = [newTransaction!, ...prevTransactions];
+                    return updated;
+                });
             }
+            
+            // Fermer le modal et réinitialiser les états
             setIsTransactionModalOpen(false);
+            setSelectedCategory(null);
             
-            // Recharger les données
-            await fetchData();
+            // Note: Pas de rechargement en arrière-plan pour éviter les conflits
+            // Les données sont mises à jour directement dans l'état local
             
-            // Vérifier les alertes après l'ajout/modification d'une transaction
+            // Vérifier les alertes APRÈS la mise à jour réussie (sans recharger les données)
             try {
-                // Récupérer les données du dashboard pour calculer les statistiques
+                // Récupérer les données du dashboard MISE À JOUR
                 const dashboardData = await getDashboardSummary();
-                // Calculer les statistiques pour les alertes
+                
+                // Calculer les statistiques pour les alertes avec les NOUVELLES données
                 const stats = calculateStatsFromDashboard(dashboardData, transactions);
                 
                 // Vérifier les alertes
                 const alertResult = await checkAlertsAfterTransaction(stats);
                 
                 if (alertResult && alertResult.alertes && alertResult.alertes.length > 0) {
+                    console.log(`⚠️ ${alertResult.alertes.length} alerte(s) détectée(s)`);
+                    
                     // Afficher la notification d'alertes
                     setAlertesDetectees(alertResult.alertes);
                     setShowAlertNotification(true);
@@ -206,18 +289,32 @@ const TransactionsPage = () => {
                     }
                 }
             } catch (alertError) {
-                // Ne pas bloquer l'utilisateur si la vérification des alertes échoue
+                // Ne pas afficher d'erreur toast pour les alertes, juste logger
             }
-        } catch (error) {
-            // Gestion silencieuse de l'erreur
-            // Simulation de succès pour les tests
-            if (editingTransaction) {
-                toast.success('Transaction modifiée avec succès (mode test)');
-            } else {
-                toast.success('Transaction créée avec succès (mode test)');
+            
+        } catch (error: any) {
+            
+            // Afficher un message d'erreur approprié
+            let errorMessage = 'Erreur lors de la sauvegarde de la transaction';
+            
+            if (error.response?.status === 400) {
+                errorMessage = 'Données invalides. Vérifiez les informations saisies.';
+            } else if (error.response?.status === 401) {
+                errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+            } else if (error.response?.status === 404) {
+                errorMessage = 'Transaction introuvable.';
+            } else if (error.response?.status === 500) {
+                errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.';
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = 'Timeout de la requête. Vérifiez votre connexion.';
             }
-            setIsTransactionModalOpen(false);
-            fetchData();
+            
+            toast.error(errorMessage);
+            
+            // Ne pas fermer le modal en cas d'erreur pour permettre à l'utilisateur de corriger
+            // setIsTransactionModalOpen(false);
+            // Ne pas recharger les données en cas d'erreur
+            // fetchData();
         }
     };
 
@@ -500,15 +597,17 @@ const TransactionsPage = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
                         {/* En-tête avec filtres et recherche */}
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-                            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                        Liste des transactions
-                                    </h3>
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                                        {filteredTransactions.length} transaction(s) trouvée(s)
-                                    </span>
-                                </div>
+                                                    <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Liste des transactions
+                                </h3>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    {filteredTransactions.length} transaction(s) trouvée(s)
+                                </span>
+                            </div>
+                            
+                            
                                 
                                 {/* Barre de recherche */}
                                 <div className="relative w-full lg:w-80">
@@ -685,7 +784,7 @@ const TransactionsPage = () => {
                     onSubmit={handleTransactionSubmit}
                     category={selectedCategory}
                     transaction={editingTransaction}
-                    userId={user?.id || 0}
+                    userId={getUserId(user) || 0}
                 />
             )}
 

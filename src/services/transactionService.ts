@@ -23,7 +23,6 @@ export const getTransactions = async (): Promise<Transaction[]> => {
       categorie_id: transaction.categorie_id || transaction.categoryId
     }));
   } catch (error) {
-    console.error('Erreur lors de la récupération des transactions:', error);
     return [];
   }
 };
@@ -50,53 +49,101 @@ export const getRecentTransactions = async (limit: number = 5): Promise<Transact
       categorie_id: transaction.categorie_id || transaction.categoryId
     }));
   } catch (error) {
-    console.error('Erreur lors de la récupération des transactions récentes:', error);
     return [];
   }
 };
 
-// Créer une nouvelle transaction
-export const createTransaction = async (data: CreateTransactionData): Promise<Transaction> => {
-  try {
-    // Préparer les données avec les noms de champs attendus par le backend
-    const transactionData = {
-      amount: data.montant,
-      description: data.description || null,
-      type: data.type, // Garder 'revenu' ou 'depense'
-      userId: data.utilisateur_id,
-      categoryId: data.categorie_id,
-      date: new Date().toISOString()
-    };
+  // Créer une nouvelle transaction
+  export const createTransaction = async (data: CreateTransactionData): Promise<Transaction> => {
+    try {
+      // Préparer les données avec les noms de champs attendus par le backend
+      const transactionData = {
+        amount: data.montant,
+        description: data.description || null,
+        type: data.type, // Garder 'revenu' ou 'depense'
+        userId: data.utilisateur_id,
+        categoryId: data.categorie_id,
+        date: new Date().toISOString()
+      };
+      
+      const response = await api.post('/transactions', transactionData);
     
-            
-            
-            const response = await api.post('/transactions', transactionData);
-    return response.data;
-  } catch (error: any) {
-    console.error('Erreur détaillée lors de la création:', error.response?.data || error.message);
-    console.error('Status:', error.response?.status);
-    console.error('Headers:', error.response?.headers);
-    throw error;
-  }
+          // Convertir la réponse du backend vers notre format frontend
+      const newTransaction: Transaction = {
+        id: response.data.id,
+        montant: response.data.montant || response.data.amount,
+        description: response.data.description,
+        type: response.data.type,
+        date_creation: response.data.date_creation || response.data.createdAt,
+        date_transaction: response.data.date_transaction || response.data.date,
+        utilisateur_id: response.data.utilisateur_id || response.data.userId,
+        categorie_id: response.data.categorie_id || response.data.categoryId
+      };
+      
+      return newTransaction;
+    } catch (error: any) {
+      throw error;
+    }
 };
 
-// Mettre à jour une transaction
-export const updateTransaction = async (id: number, data: UpdateTransactionData): Promise<Transaction> => {
-  try {
-    // Convertir les noms de champs pour le backend
-    const updateData: any = {};
-    if (data.montant !== undefined) updateData.amount = data.montant;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.type !== undefined) updateData.type = data.type; // Garder 'revenu' ou 'depense'
-    if (data.categorie_id !== undefined) updateData.categoryId = data.categorie_id;
-    
-
-    const response = await api.put(`/transactions/${id}`, updateData);
-    return response.data;
-  } catch (error: any) {
-    console.error('Erreur lors de la mise à jour:', error.response?.data || error.message);
-    throw error;
-  }
+  // Mettre à jour une transaction
+  export const updateTransaction = async (id: number, data: UpdateTransactionData): Promise<Transaction> => {
+    try {
+      // Convertir les noms de champs pour le backend selon la documentation
+      const updateData: any = {};
+      
+      // Vérifier et ajouter chaque champ
+      if (data.montant !== undefined && data.montant !== null) {
+        updateData.amount = data.montant;
+      }
+      
+      if (data.description !== undefined && data.description !== null) {
+        updateData.description = data.description;
+      }
+      
+      if (data.type !== undefined && data.type !== null) {
+        updateData.type = data.type; // Garder 'revenu' ou 'depense'
+      }
+      
+      if (data.categorie_id !== undefined && data.categorie_id !== null) {
+        updateData.categoryId = data.categorie_id;
+      }
+      
+      // Ajouter la date obligatoire
+      updateData.date = new Date().toISOString();
+      
+      const response = await api.put(`/transactions/${id}`, updateData, {
+        timeout: 10000 // 10 secondes
+      });
+      
+      // Vérifier que la réponse contient les données attendues
+      if (!response.data) {
+        throw new Error('Réponse vide du serveur');
+      }
+      
+      // Le backend renvoie { message: "...", transaction: {...} }
+      const transactionData = response.data.transaction || response.data;
+      
+      if (!transactionData.id) {
+        throw new Error('ID manquant dans la réponse du serveur');
+      }
+      
+      // Convertir la réponse du backend vers notre format frontend
+      const updatedTransaction: Transaction = {
+        id: transactionData.id,
+        montant: transactionData.montant || transactionData.amount,
+        description: transactionData.description,
+        type: transactionData.type,
+        date_creation: transactionData.date_creation || transactionData.createdAt,
+        date_transaction: transactionData.date_transaction || transactionData.date,
+        utilisateur_id: transactionData.utilisateur_id || transactionData.userId,
+        categorie_id: transactionData.categorie_id || transactionData.categoryId
+      };
+      
+      return updatedTransaction;
+    } catch (error: any) {
+      throw error;
+    }
 };
 
 // Supprimer une transaction
@@ -110,7 +157,6 @@ export const getTransactionsByCategory = async (categoryId: number): Promise<Tra
     const response = await api.get(`/transactions/category/${categoryId}`);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('Erreur lors de la récupération des transactions par catégorie:', error);
     return [];
   }
 };
@@ -121,7 +167,6 @@ export const getTransactionsByPeriod = async (startDate: string, endDate: string
     const response = await api.get(`/transactions/period?startDate=${startDate}&endDate=${endDate}`);
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
-    console.error('Erreur lors de la récupération des transactions par période:', error);
     return [];
   }
 };

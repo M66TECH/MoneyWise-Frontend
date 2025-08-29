@@ -67,7 +67,6 @@ export const verifyEmail = async (data: EmailVerificationData): Promise<AuthResp
     
     return response.data;
   } catch (error: any) {
-    console.error('Erreur lors de la vérification d\'email:', error);
     throw new Error(error.response?.data?.message || 'Erreur lors de la vérification d\'email');
   }
 };

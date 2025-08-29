@@ -15,25 +15,36 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
   const checkAlertsAfterTransaction = useCallback(async (
     statistiques: FinancialStats
   ) => {
-    if (!autoCheckAfterTransaction || !token) {
+    console.log('🚨 Début de la vérification des alertes après transaction...');
+    console.log('📊 Statistiques reçues:', statistiques);
+    
+    if (!autoCheckAfterTransaction) {
+      console.log('⚠️ Vérification automatique désactivée');
+      return;
+    }
+    
+    if (!token) {
+      console.log('⚠️ Token d\'authentification manquant');
       return;
     }
 
     try {
-  
-      
+      console.log('🔧 Initialisation du service d\'alertes...');
       // Initialiser le service si nécessaire
       alertService.init(token);
       
+      console.log('🔍 Vérification des alertes avec les nouvelles statistiques...');
       // Vérifier les alertes avec les nouvelles statistiques
       const result = await alertService.checkAlerts(statistiques, envoyerEmail);
+      console.log('📋 Résultat de la vérification des alertes:', result);
       
       if (result.alertes && result.alertes.length > 0) {
-
+        console.log(`⚠️ ${result.alertes.length} alerte(s) détectée(s)`);
         
         // Afficher une notification si des alertes critiques sont détectées
         const alertesCritiques = result.alertes.filter(a => a.severite === 'critical');
         if (alertesCritiques.length > 0) {
+          console.log(`🚨 ${alertesCritiques.length} alerte(s) critique(s) détectée(s)`);
           // Créer une notification toast ou popup
           const event = new CustomEvent('showAlert', {
             detail: {
@@ -45,12 +56,11 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
           window.dispatchEvent(event);
         }
       } else {
-
+        console.log('✅ Aucune alerte détectée');
       }
       
       return result;
     } catch (error) {
-      console.error('❌ Erreur lors de la vérification des alertes après transaction:', error);
       return null;
     }
   }, [token, autoCheckAfterTransaction, envoyerEmail]);
@@ -60,7 +70,12 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
     dashboardData: any,
     transactions: any[]
   ): FinancialStats => {
+    console.log('🔧 Calcul des statistiques pour alertes...');
+    console.log('📊 Données dashboard reçues:', dashboardData);
+    console.log('💳 Transactions reçues:', transactions?.length || 0);
+
     if (!dashboardData) {
+      console.log('⚠️ Aucune donnée dashboard disponible');
       return {
         solde: 0,
         total_revenus: 0,
@@ -75,6 +90,8 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
     const solde = dashboardData.solde && !isNaN(dashboardData.solde) ? dashboardData.solde : 0;
     const total_revenus = dashboardData.total_revenus && !isNaN(dashboardData.total_revenus) ? dashboardData.total_revenus : 0;
     const total_depenses = dashboardData.total_depenses && !isNaN(dashboardData.total_depenses) ? dashboardData.total_depenses : 0;
+    
+    console.log('📈 Données de base extraites:', { solde, total_revenus, total_depenses });
     
     // Utiliser les données du dashboard principal pour les alertes (plus fiables que statistiques_mensuelles)
     // Si les statistiques mensuelles sont à 0, utiliser les données principales
@@ -102,15 +119,17 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
       }
     }
 
+    console.log('📅 Statistiques mensuelles extraites:', { revenus_mensuels, depenses_mensuelles, nombre_transactions });
+
     // Si les statistiques mensuelles sont à 0, utiliser les données principales du dashboard
     // Cela arrive souvent quand les statistiques mensuelles ne sont pas encore mises à jour
     if (revenus_mensuels === 0 && total_revenus > 0) {
-  
+      console.log('🔄 Utilisation des revenus totaux pour les alertes');
       revenus_mensuels = total_revenus;
     }
     
     if (depenses_mensuelles === 0 && total_depenses > 0) {
-  
+      console.log('🔄 Utilisation des dépenses totales pour les alertes');
       depenses_mensuelles = total_depenses;
     }
 
@@ -120,14 +139,11 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
     let depensesPourAlertes = depenses_mensuelles;
     
     if (revenus_mensuels === 0 && depenses_mensuelles === 0 && solde > 0) {
-  
-      
+      console.log('🔄 Estimation des revenus/dépenses basée sur le solde...');
       // Si le solde est positif, on suppose qu'il y a eu des revenus
       // On estime les revenus à 1.5x le solde et les dépenses à 0.5x le solde
       revenusPourAlertes = Math.round(solde * 1.5);
       depensesPourAlertes = Math.round(solde * 0.5);
-      
-      
     }
 
     // Vérifier s'il y a des données dans depenses_par_categorie pour les alertes
@@ -137,14 +153,10 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
       }, 0);
       
       if (totalDepensesCategories > 0 && depensesPourAlertes === 0) {
-    
+        console.log('🔄 Utilisation des dépenses par catégorie pour les alertes');
         depensesPourAlertes = totalDepensesCategories;
       }
     }
-
-
-
-
 
     // Calculer la date de la dernière transaction
     let derniere_transaction: Date | undefined;
@@ -153,18 +165,18 @@ export const useTransactionAlerts = (options: UseTransactionAlertsOptions = {}) 
       derniere_transaction = new Date(lastTransaction.date_creation || lastTransaction.date_transaction);
     }
 
-    return {
+    const stats = {
       solde,
       total_revenus,
       total_depenses,
-      depenses_mensuelles, // Garder les vraies valeurs pour le dashboard
-      revenus_mensuels,    // Garder les vraies valeurs pour le dashboard
+      depenses_mensuelles: depensesPourAlertes, // Utiliser les valeurs pour alertes
+      revenus_mensuels: revenusPourAlertes,     // Utiliser les valeurs pour alertes
       nombre_transactions,
-      derniere_transaction,
-      // Ajouter les valeurs pour les alertes si différentes
-      ...(revenusPourAlertes !== revenus_mensuels && { revenus_mensuels_alertes: revenusPourAlertes }),
-      ...(depensesPourAlertes !== depenses_mensuelles && { depenses_mensuelles_alertes: depensesPourAlertes })
+      derniere_transaction
     };
+
+    console.log('✅ Statistiques finales pour alertes:', stats);
+    return stats;
   }, []);
 
   return {

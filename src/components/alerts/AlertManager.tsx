@@ -323,7 +323,7 @@ const AlertManager: React.FC<AlertManagerProps> = ({
               onClick={async () => {
                 try {
                   setIsLoading(true);
-                  await alertService.testAlertes();
+                  // Méthode de test supprimée
                 } catch (error) {
                   // Gestion silencieuse de l'erreur
                 } finally {

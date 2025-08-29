@@ -118,7 +118,7 @@ export const usePersistentAuth = () => {
       setToken(null);
       setUser(null);
     } catch (error) {
-      console.error('Erreur lors du nettoyage des données:', error);
+      // Gestion silencieuse de l'erreur
     }
   }, []);
 
@@ -149,9 +149,9 @@ export const usePersistentAuth = () => {
           if (JSON.stringify(newUser) !== JSON.stringify(user)) {
             setUser(newUser);
           }
-        } catch (error) {
-          console.error('Erreur lors de la synchronisation utilisateur:', error);
-        }
+            } catch (error) {
+      // Gestion silencieuse de l'erreur
+    }
       } else if (e.key === 'token' && e.newValue !== token) {
         setToken(e.newValue);
       }

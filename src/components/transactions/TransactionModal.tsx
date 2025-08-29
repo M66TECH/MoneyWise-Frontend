@@ -74,25 +74,42 @@ const TransactionModal = ({
 
         // Validation pour s'assurer que le type correspond à la catégorie (sauf pour les hybrides)
         if (category.type !== 'hybride' && formData.type !== category.type) {
-            console.error(`Type de transaction (${formData.type}) ne correspond pas au type de catégorie (${category.type})`);
+            return;
+        }
+
+        // Vérifier que l'utilisateur est valide pour la création
+        if (!transaction && (!userId || userId === 0)) {
             return;
         }
 
         setLoading(true);
         try {
-            const transactionData = {
-                montant: parseFloat(formData.montant),
-                description: formData.description,
-                type: formData.type,
-                utilisateur_id: userId,
-                categorie_id: category.id
-            };
-
-        
-            await onSubmit(transactionData as CreateTransactionData);
+                    // En mode édition, on ne doit pas envoyer utilisateur_id
+                    if (transaction) {
+                // Mode édition - ne pas envoyer utilisateur_id
+                const updateData = {
+                    montant: parseFloat(formData.montant),
+                    description: formData.description,
+                    type: formData.type,
+                    categorie_id: category.id
+                };
+                
+                await onSubmit(updateData as UpdateTransactionData);
+            } else {
+                // Mode création - envoyer utilisateur_id
+                const createData = {
+                    montant: parseFloat(formData.montant),
+                    description: formData.description,
+                    type: formData.type,
+                    utilisateur_id: userId,
+                    categorie_id: category.id
+                };
+                
+                await onSubmit(createData as CreateTransactionData);
+            }
             onClose();
         } catch (error) {
-            console.error('Erreur lors de la sauvegarde:', error);
+            // Gestion silencieuse de l'erreur
         } finally {
             setLoading(false);
         }

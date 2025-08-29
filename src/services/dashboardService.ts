@@ -110,9 +110,6 @@ export const getDashboardSummary = async (year?: number, month?: number): Promis
 
     return response.data;
   } catch (error: any) {
-    console.error('❌ Erreur lors de la récupération du résumé dashboard:', error);
-    console.error('🔍 Détails de l\'erreur:', error.response?.data || error.message);
-    
     // Retourner des données par défaut en cas d'erreur
     const fallbackData = {
       solde: 0,
@@ -139,7 +136,6 @@ export const getMonthlyStats = async (month: string): Promise<MonthlyStats> => {
 
     return response.data;
   } catch (error) {
-    console.error('Erreur lors de la récupération des stats mensuelles:', error);
     return {
       mois: month,
       revenus: 0,
@@ -161,7 +157,6 @@ export const getDashboardStats = async (startDate: string, endDate: string, type
 
     return response.data;
   } catch (error) {
-    console.error('Erreur lors de la récupération des stats dashboard:', error);
     return {};
   }
 };
@@ -178,7 +173,6 @@ export const getChartData = async (startDate: string, endDate: string, chartType
 
     return response.data;
   } catch (error) {
-    console.error('Erreur lors de la récupération des données graphiques:', error);
     return {};
   }
 };
@@ -194,7 +188,6 @@ export const getCategoryBreakdown = async (type?: string, startDate?: string, en
 
     return response.data;
   } catch (error) {
-    console.error('Erreur lors de la récupération de la répartition par catégorie:', error);
     return [];
   }
 };
