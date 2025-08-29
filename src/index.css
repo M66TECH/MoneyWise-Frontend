@@ -3,12 +3,19 @@
 @tailwind utilities;
 
 @layer base {
+  /* Reset global pour garantir la cohérence */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
   html {
     scroll-behavior: smooth;
+    /* Empêcher le zoom automatique sur tous les navigateurs */
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    overflow-x: hidden;
     /* Empêcher le zoom sur mobile */
     touch-action: manipulation;
     -webkit-touch-callout: none;
@@ -17,43 +24,83 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    /* Forcer l'échelle à 1 */
+    transform: scale(1);
+    transform-origin: 0 0;
+    /* Empêcher les débordements */
+    overflow-x: hidden;
+    /* Garantir la largeur correcte */
+    width: 100%;
+    max-width: 100vw;
   }
 
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Empêcher les débordements */
     overflow-x: hidden;
+    overflow-y: auto;
+    /* Garantir la largeur correcte */
     width: 100%;
     max-width: 100vw;
-  }
-
-  #root {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100vw;
-  }
-
-  /* Empêcher le zoom automatique sur les champs de saisie sur iOS */
-  input, textarea, select {
-    font-size: 16px !important;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    /* Empêcher le zoom */
+    touch-action: manipulation;
+    /* Forcer l'échelle à 1 */
     transform: scale(1);
     transform-origin: 0 0;
   }
 
+  #root {
+    /* Empêcher les débordements */
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* Garantir la largeur correcte */
+    width: 100%;
+    max-width: 100vw;
+    /* Forcer l'échelle à 1 */
+    transform: scale(1);
+    transform-origin: 0 0;
+    /* Position relative pour les enfants */
+    position: relative;
+  }
+
+  /* Empêcher le zoom automatique sur les champs de saisie sur iOS */
+  input, textarea, select, button {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    /* Forcer l'échelle à 1 */
+    transform: scale(1);
+    transform-origin: 0 0;
+    /* Empêcher le zoom */
+    touch-action: manipulation;
+    /* Garantir la taille correcte */
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   /* Empêcher le zoom sur les champs de saisie sur iOS Safari */
   @media screen and (-webkit-min-device-pixel-ratio: 0) {
-    input, textarea, select {
+    input, textarea, select, button {
       font-size: 16px !important;
     }
   }
 
-  /* Empêcher les débordements horizontaux */
-  * {
-    box-sizing: border-box;
+  /* Règles spécifiques pour les boutons */
+  button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Règles pour empêcher les débordements */
+  .container, .wrapper, .content {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   /* Améliorer le rendu des scrollbars */
@@ -105,13 +152,84 @@
       -ms-text-size-adjust: none;
       text-size-adjust: none;
       touch-action: manipulation;
+      /* Forcer l'échelle à 1 */
+      transform: scale(1);
+      transform-origin: 0 0;
+      /* Empêcher les débordements */
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
     }
     
-    input, textarea, select {
+    input, textarea, select, button {
+      font-size: 16px !important;
+      -webkit-appearance: none;
+      appearance: none;
+      /* Forcer l'échelle à 1 */
+      transform: scale(1);
+      transform-origin: 0 0;
+      /* Empêcher le zoom */
+      touch-action: manipulation;
+    }
+
+    /* Empêcher le zoom sur les images */
+    img {
+      max-width: 100%;
+      height: auto;
+      transform: scale(1);
+      transform-origin: 0 0;
+    }
+
+    /* Empêcher le zoom sur les tableaux */
+    table {
+      width: 100%;
+      max-width: 100%;
+      transform: scale(1);
+      transform-origin: 0 0;
+    }
+  }
+
+  /* Règles spécifiques pour les très petits écrans */
+  @media (max-width: 480px) {
+    html, body {
+      font-size: 14px;
+    }
+    
+    input, textarea, select, button {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Règles spécifiques pour iOS Safari */
+  @supports (-webkit-touch-callout: none) {
+    html, body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      touch-action: manipulation;
+    }
+    
+    input, textarea, select, button {
       font-size: 16px !important;
       -webkit-appearance: none;
       appearance: none;
     }
+  }
+
+  /* Règles spécifiques pour Safari */
+  @media screen and (-webkit-min-device-pixel-ratio: 0) {
+    html, body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+  }
+
+  /* Règles pour empêcher le zoom sur les éléments interactifs */
+  a, button, input, textarea, select {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
   }
 
   :root {

@@ -23,6 +23,11 @@ export default defineConfig({
         },
       },
     },
+    // Optimisations pour garantir la cohérence entre dev et prod
+    cssCodeSplit: true,
+    sourcemap: false,
+    // Garantir que les assets sont correctement servis
+    assetsInlineLimit: 4096,
   },
   // Optimisations pour le développement
   server: {

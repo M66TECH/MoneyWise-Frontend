@@ -3,11 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>MoneyWise</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Script pour forcer le zoom à 100% et empêcher le zoom automatique
+      (function() {
+        // Forcer le zoom à 100% au chargement
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', function() {
+            if (window.visualViewport.scale !== 1) {
+              // Forcer le zoom à 100%
+              document.body.style.transform = 'scale(1)';
+              document.body.style.transformOrigin = '0 0';
+            }
+          });
+        }
+        
+        // Empêcher le zoom sur les champs de saisie
+        document.addEventListener('DOMContentLoaded', function() {
+          const inputs = document.querySelectorAll('input, textarea, select');
+          inputs.forEach(function(input) {
+            input.addEventListener('focus', function() {
+              // Forcer la taille de police à 16px pour éviter le zoom sur iOS
+              this.style.fontSize = '16px';
+            });
+          });
+        });
+        
+        // Empêcher le zoom sur les gestes tactiles
+        document.addEventListener('gesturestart', function(e) {
+          e.preventDefault();
+        });
+        
+        document.addEventListener('gesturechange', function(e) {
+          e.preventDefault();
+        });
+        
+        document.addEventListener('gestureend', function(e) {
+          e.preventDefault();
+        });
+      })();
+    </script>
   </body>
 </html>
