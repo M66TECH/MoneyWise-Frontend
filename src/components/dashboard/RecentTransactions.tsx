@@ -66,7 +66,8 @@ const RecentTransactions = ({
                     Voir tout
                 </Link>
             </div>
-            <div className="overflow-x-auto max-w-full">
+            {/* Version Desktop - Tableau */}
+            <div className="hidden md:block overflow-x-auto max-w-full">
                 {safeTransactions.length === 0 ? (
                     <div className="text-center py-8 text-text-secondary">
                         Aucune transaction récente
@@ -130,6 +131,62 @@ const RecentTransactions = ({
                             })}
                         </tbody>
                     </table>
+                )}
+            </div>
+
+            {/* Version Mobile - Cartes */}
+            <div className="md:hidden space-y-3">
+                {safeTransactions.length === 0 ? (
+                    <div className="text-center py-8 text-text-secondary">
+                        Aucune transaction récente
+                    </div>
+                ) : (
+                    safeTransactions.map((transaction) => {
+                        const category = getCategoryForTransaction(transaction);
+                        return (
+                            <div key={transaction.id} className="bg-background p-3 rounded-lg border border-border hover:shadow-sm transition-shadow">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${transaction.type === 'revenu' ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
+                                            {transaction.type === 'revenu' ? <ArrowUpRight size={16} /> : <ArrowDownLeft size={16} />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium text-text-primary text-sm truncate">{transaction.description}</h4>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {category ? (
+                                                    <>
+                                                        <div
+                                                            className="w-2 h-2 rounded-full flex-shrink-0"
+                                                            style={{ backgroundColor: category.couleur }}
+                                                        />
+                                                        <span className="text-xs text-text-secondary">{category.nom}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-text-secondary">Catégorie inconnue</span>
+                                                )}
+                                                <span className="text-xs text-text-secondary">•</span>
+                                                <span className="text-xs text-text-secondary">{formatDate(transaction.date_transaction)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className={`text-right flex-shrink-0 ${transaction.type === 'revenu' ? 'text-positive' : 'text-negative'}`}>
+                                        <div className="font-semibold text-sm">
+                                            {transaction.type === 'revenu' ? '+' : '-'} {formatCurrency(transaction.montant)}
+                                        </div>
+                                        {onView && (
+                                            <button
+                                                onClick={() => onView(transaction)}
+                                                className="mt-1 p-1 text-text-secondary hover:text-blue-500 transition-colors"
+                                                title="Voir les détails"
+                                            >
+                                                <MoreVertical size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
                 )}
             </div>
         </div>

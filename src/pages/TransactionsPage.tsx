@@ -11,6 +11,7 @@ import TransactionDetailsModal from '../components/transactions/TransactionDetai
 import { useTransactionAlerts } from '../hooks/useTransactionAlerts';
 import AlertNotification from '../components/alerts/AlertNotification';
 
+
 import type { Category, Transaction, CreateTransactionData, UpdateTransactionData } from '../types';
 import type { Alerte } from '../services/alertService';
 
@@ -47,6 +48,9 @@ const TransactionsPage = () => {
     // États pour les alertes
     const [alertesDetectees, setAlertesDetectees] = useState<Alerte[]>([]);
     const [showAlertNotification, setShowAlertNotification] = useState(false);
+    
+    // État pour forcer la mise à jour des cartes
+    const [cardsUpdateTrigger, setCardsUpdateTrigger] = useState(0);
 
     // Hook pour les alertes après transaction
     const { checkAlertsAfterTransaction, calculateStatsFromDashboard } = useTransactionAlerts({
@@ -175,12 +179,64 @@ const TransactionsPage = () => {
         try {
             await deleteTransaction(transactionId);
             toast.success('Transaction supprimée avec succès');
-            fetchData();
+            
+            // Mettre à jour directement l'état local au lieu de recharger
+            setTransactions(prevTransactions => {
+                const updated = prevTransactions.filter(t => t.id !== transactionId);
+                return updated;
+            });
+            
+            // Forcer la mise à jour des cartes
+            setCardsUpdateTrigger(prev => prev + 1);
         } catch (error) {
             // Simulation de succès pour les tests
             toast.success('Transaction supprimée avec succès (mode test)');
-            fetchData();
+            
+            // Mettre à jour directement l'état local au lieu de recharger
+            setTransactions(prevTransactions => {
+                const updated = prevTransactions.filter(t => t.id !== transactionId);
+                return updated;
+            });
+            
+            // Forcer la mise à jour des cartes
+            setCardsUpdateTrigger(prev => prev + 1);
             }
+        }
+    };
+
+    const handleDiagnostic = async () => {
+        console.log('🔍 Lancement du diagnostic des transactions...');
+        const result = await runTransactionDiagnostic();
+        console.log('📊 Résultat du diagnostic:', result);
+        
+        if (result.success) {
+            toast.success('Diagnostic réussi ! Vérifiez la console pour les détails.');
+        } else {
+            toast.error(`Diagnostic échoué: ${result.error}`);
+        }
+    };
+
+    const handleApiDiagnostic = async () => {
+        console.log('🌐 Lancement du diagnostic API...');
+        const result = await runApiDiagnostic();
+        console.log('📊 Résultat du diagnostic API:', result);
+        
+        if (result.success) {
+            toast.success('Diagnostic API réussi ! Vérifiez la console pour les détails.');
+        } else {
+            toast.error(`Diagnostic API échoué: ${result.error}`);
+        }
+    };
+
+    const handleCategoryDiagnostic = async () => {
+        console.log('📂 Lancement du diagnostic des catégories...');
+        const result = await runCategoryDiagnostic();
+        console.log('📊 Résultat du diagnostic des catégories:', result);
+        
+        if (result.success) {
+            toast.success(`Diagnostic des catégories réussi ! ${result.count} catégories trouvées.`);
+        } else {
+            toast.error(`Diagnostic des catégories échoué: ${result.error}`);
         }
     };
 
@@ -225,6 +281,9 @@ const TransactionsPage = () => {
                     return updated;
                 });
                 
+                // Forcer la mise à jour des cartes
+                setCardsUpdateTrigger(prev => prev + 1);
+                
                 // Réinitialiser l'état d'édition
                 setEditingTransaction(null);
             } else {
@@ -236,6 +295,9 @@ const TransactionsPage = () => {
                     const updated = [newTransaction!, ...prevTransactions];
                     return updated;
                 });
+                
+                // Forcer la mise à jour des cartes
+                setCardsUpdateTrigger(prev => prev + 1);
             }
             
             // Fermer le modal et réinitialiser les états
@@ -251,14 +313,17 @@ const TransactionsPage = () => {
                 const dashboardData = await getDashboardSummary();
                 
                 // Calculer les statistiques pour les alertes avec les NOUVELLES données
-                const stats = calculateStatsFromDashboard(dashboardData, transactions);
+                // Utiliser les transactions mises à jour, pas l'état actuel
+                const updatedTransactions = editingTransaction 
+                    ? transactions.map(t => t.id === editingTransaction.id ? updatedTransaction! : t)
+                    : [newTransaction!, ...transactions];
+                
+                const stats = calculateStatsFromDashboard(dashboardData, updatedTransactions);
                 
                 // Vérifier les alertes
                 const alertResult = await checkAlertsAfterTransaction(stats);
                 
                 if (alertResult && alertResult.alertes && alertResult.alertes.length > 0) {
-                    console.log(`⚠️ ${alertResult.alertes.length} alerte(s) détectée(s)`);
-                    
                     // Afficher la notification d'alertes
                     setAlertesDetectees(alertResult.alertes);
                     setShowAlertNotification(true);
@@ -334,15 +399,29 @@ const TransactionsPage = () => {
         }
     };
 
+    // Calcul des totaux par catégorie avec mémorisation
+    const categoryTotals = useMemo(() => {
+        if (!Array.isArray(transactions) || !Array.isArray(categories)) {
+            return {};
+        }
+        
+        const totals: { [key: number]: number } = {};
+        
+        categories.forEach(category => {
+            totals[category.id] = transactions
+                .filter(t => t.categorie_id === category.id)
+                .reduce((sum, t) => {
+                    const montant = parseFloat(t.montant?.toString() || '0');
+                    return sum + (isNaN(montant) ? 0 : montant);
+                }, 0);
+        });
+        
+        return totals;
+    }, [transactions, categories, cardsUpdateTrigger]); // Inclure le trigger pour forcer la mise à jour
+
     // Fonction pour calculer le montant total d'une catégorie
     const getCategoryTotal = (categoryId: number) => {
-        if (!Array.isArray(transactions)) return 0;
-        return transactions
-            .filter(t => t.categorie_id === categoryId)
-            .reduce((sum, t) => {
-                const montant = parseFloat(t.montant?.toString() || '0');
-                return sum + (isNaN(montant) ? 0 : montant);
-            }, 0);
+        return categoryTotals[categoryId] || 0;
     };
 
     // Fonction pour formater les montants en français
@@ -556,6 +635,8 @@ const TransactionsPage = () => {
                                             <span className="text-sm text-gray-600 dark:text-gray-300">Total</span>
                                             <span className="font-bold text-lg text-gray-900 dark:text-white">
                                                 {formatAmount(getCategoryTotal(category.id))}
+                                                {/* Trigger pour forcer la mise à jour */}
+                                                <span className="hidden">{cardsUpdateTrigger}</span>
                                             </span>
                                         </div>
                                 </div>
@@ -578,9 +659,13 @@ const TransactionsPage = () => {
 
                 {/* Liste complète des transactions avec filtres */}
                 <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full"></div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Toutes les Transactions</h2>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full"></div>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Toutes les Transactions</h2>
+                        </div>
+                        
+
                     </div>
                     
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">

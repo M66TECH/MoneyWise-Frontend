@@ -67,17 +67,20 @@ export const getRecentTransactions = async (limit: number = 5): Promise<Transact
       };
       
       const response = await api.post('/transactions', transactionData);
-    
-          // Convertir la réponse du backend vers notre format frontend
+      
+      // Le backend renvoie { message: "...", transaction: {...} }
+      const responseTransactionData = response.data.transaction || response.data;
+      
+      // Convertir la réponse du backend vers notre format frontend
       const newTransaction: Transaction = {
-        id: response.data.id,
-        montant: response.data.montant || response.data.amount,
-        description: response.data.description,
-        type: response.data.type,
-        date_creation: response.data.date_creation || response.data.createdAt,
-        date_transaction: response.data.date_transaction || response.data.date,
-        utilisateur_id: response.data.utilisateur_id || response.data.userId,
-        categorie_id: response.data.categorie_id || response.data.categoryId
+        id: responseTransactionData.id,
+        montant: responseTransactionData.montant || responseTransactionData.amount,
+        description: responseTransactionData.description || undefined,
+        type: responseTransactionData.type,
+        date_creation: responseTransactionData.date_creation || responseTransactionData.createdAt || new Date().toISOString(),
+        date_transaction: responseTransactionData.date_transaction || responseTransactionData.date || new Date().toISOString(),
+        utilisateur_id: responseTransactionData.utilisateur_id || responseTransactionData.userId,
+        categorie_id: responseTransactionData.categorie_id || responseTransactionData.categoryId
       };
       
       return newTransaction;

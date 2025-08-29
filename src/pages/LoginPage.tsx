@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { login as loginService } from "../services/authService";
 import { useAuth } from "../contexts/AuthContext";
-import toast from "react-hot-toast";
 import { AxiosError } from "axios";
 import type { LoginErrorResponse } from "../types";
+import EmailValidator from "../components/EmailValidator";
+import ErrorMessage from "../components/ErrorMessage";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -14,8 +15,22 @@ const LoginPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [emailNotVerified, setEmailNotVerified] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isEmailValid, setIsEmailValid] = useState(true);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+
+  // Afficher le message de succès si reçu depuis la page d'inscription
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Nettoyer l'état de navigation
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,17 +38,27 @@ const LoginPage = () => {
     if (emailNotVerified) {
       setEmailNotVerified(false);
     }
+    if (error) {
+      setError(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Vérifier la validité de l'email avant de soumettre
+    if (!isEmailValid) {
+      setError("Veuillez corriger le format de l'email avant de continuer.");
+      return;
+    }
+    
     setLoading(true);
     setEmailNotVerified(false);
+    setError(null);
 
     try {
-      const { utilisateur, token, message } = await loginService(formData);
+      const { utilisateur, token } = await loginService(formData);
       login(utilisateur, token);
-      toast.success(message || "Connexion réussie !");
       navigate("/dashboard");
     } catch (err) {
       if (err instanceof AxiosError) {
@@ -42,18 +67,45 @@ const LoginPage = () => {
           const errorData = err.response.data as LoginErrorResponse;
           if (errorData.emailNonVerifie) {
             setEmailNotVerified(true);
-            toast.error("Veuillez vérifier votre email avant de vous connecter.");
             return;
           }
         }
         
-        const errorMessage = err.response?.data?.message || 
-          `Erreur ${err.response?.status}: Le serveur a répondu avec une erreur.`;
-        toast.error(errorMessage);
+        if (err.response?.status === 401) {
+          setError("Email ou mot de passe incorrect. Veuillez vérifier vos identifiants.");
+        } else if (err.response?.status === 400) {
+          setError("Veuillez remplir tous les champs requis.");
+        } else if (err.response?.status === 500) {
+          setError("Erreur serveur. Veuillez réessayer plus tard.");
+        } else if (err.request) {
+          setError("Impossible de se connecter au serveur. Vérifiez votre connexion internet.");
+        } else {
+          // Traduire les messages d'erreur courants du backend
+          const backendMessage = err.response?.data?.message || "";
+          let translatedMessage = "Une erreur s'est produite lors de la connexion.";
+          
+          if (backendMessage.includes("Invalid credentials")) {
+            translatedMessage = "Email ou mot de passe incorrect.";
+          } else if (backendMessage.includes("User not found")) {
+            translatedMessage = "Aucun compte trouvé avec cet email.";
+          } else if (backendMessage.includes("Email not verified")) {
+            translatedMessage = "Votre email n'est pas encore vérifié.";
+          } else if (backendMessage.includes("Invalid email")) {
+            translatedMessage = "Format d'email invalide.";
+          } else if (backendMessage.includes("Password required")) {
+            translatedMessage = "Le mot de passe est requis.";
+          } else if (backendMessage.includes("Email required")) {
+            translatedMessage = "L'email est requis.";
+          } else if (backendMessage && backendMessage.trim() !== "") {
+            translatedMessage = backendMessage;
+          }
+          
+          setError(translatedMessage);
+        }
       } else if (err instanceof Error) {
-        toast.error(err.message);
+        setError(err.message);
       } else {
-        toast.error("Une erreur inattendue s'est produite.");
+        setError("Une erreur inattendue s'est produite.");
       }
     } finally {
       setLoading(false);
@@ -90,6 +142,25 @@ const LoginPage = () => {
           </div>
         </div>
         
+        {/* Messages d'erreur et de succès */}
+        {error && (
+          <ErrorMessage 
+            message={error} 
+            type="error" 
+            onClose={() => setError(null)}
+            className="mt-4"
+          />
+        )}
+        
+        {successMessage && (
+          <ErrorMessage 
+            message={successMessage} 
+            type="info" 
+            onClose={() => setSuccessMessage(null)}
+            className="mt-4"
+          />
+        )}
+
         {emailNotVerified && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-yellow-800 text-sm mb-3">
@@ -122,17 +193,30 @@ const LoginPage = () => {
               required
               className="w-full mt-2 px-3 py-2 bg-transparent outline-none border focus:border-primary shadow-sm rounded-lg"
             />
+            <EmailValidator 
+              email={formData.email} 
+              onValidationChange={setIsEmailValid}
+            />
           </div>
           <div>
             <label className="font-medium">Mot de passe</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full mt-2 px-3 py-2 bg-transparent outline-none border focus:border-primary shadow-sm rounded-lg"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full mt-2 px-3 py-2 pr-10 bg-transparent outline-none border focus:border-primary shadow-sm rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary hover:text-text-primary"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
           <div className="flex items-center justify-between text-sm">
             <Link
@@ -144,8 +228,8 @@ const LoginPage = () => {
           </div>
           <button
             type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2 text-white font-medium bg-primary hover:bg-primary-hover active:bg-primary rounded-lg duration-150 disabled:bg-gray-500"
+            disabled={loading || !isEmailValid}
+            className="w-full px-4 py-2 text-white font-medium bg-primary hover:bg-primary-hover active:bg-primary rounded-lg duration-150 disabled:bg-gray-500 disabled:cursor-not-allowed"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>

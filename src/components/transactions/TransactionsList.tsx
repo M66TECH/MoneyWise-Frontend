@@ -148,14 +148,14 @@ const TransactionsList = ({
                 </div>
                 
                 {/* Filtres */}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <select
                         value={filterType}
                         onChange={(e) => {
                             setFilterType(e.target.value as 'all' | 'revenu' | 'depense');
                             setCurrentPage(1);
                         }}
-                        className="px-3 py-1 text-sm border border-border rounded-lg bg-background text-text-primary"
+                        className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-text-primary w-full sm:w-auto"
                     >
                         <option value="all">Tous les types</option>
                         <option value="revenu">Revenus</option>
@@ -168,7 +168,7 @@ const TransactionsList = ({
                             setFilterCategory(e.target.value === 'all' ? 'all' : parseInt(e.target.value));
                             setCurrentPage(1);
                         }}
-                        className="px-3 py-1 text-sm border border-border rounded-lg bg-background text-text-primary"
+                        className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-text-primary w-full sm:w-auto"
                     >
                         <option value="all">Toutes les catégories</option>
                         {categories.map(category => (
@@ -180,8 +180,8 @@ const TransactionsList = ({
                 </div>
             </div>
 
-            {/* Tableau */}
-            <div className="overflow-x-auto max-w-full">
+            {/* Version Desktop - Tableau */}
+            <div className="hidden md:block overflow-x-auto max-w-full">
                 {currentTransactions.length === 0 ? (
                     <div className="text-center py-8 text-text-secondary">
                         {processedTransactions.length === 0 ? 'Aucune transaction trouvée' : 'Aucune transaction sur cette page'}
@@ -300,29 +300,113 @@ const TransactionsList = ({
                 )}
             </div>
 
+            {/* Version Mobile - Cartes */}
+            <div className="md:hidden space-y-4">
+                {currentTransactions.length === 0 ? (
+                    <div className="text-center py-8 text-text-secondary">
+                        {processedTransactions.length === 0 ? 'Aucune transaction trouvée' : 'Aucune transaction sur cette page'}
+                    </div>
+                ) : (
+                    currentTransactions.map((transaction) => {
+                        const category = getCategoryForTransaction(transaction);
+                        return (
+                            <div key={transaction.id} className="bg-background p-4 rounded-lg border border-border hover:shadow-md transition-shadow">
+                                <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${transaction.type === 'revenu' ? 'bg-positive/10 text-positive' : 'bg-negative/10 text-negative'}`}>
+                                            {transaction.type === 'revenu' ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium text-text-primary truncate">{transaction.description}</h4>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {category ? (
+                                                    <>
+                                                        <div
+                                                            className="w-3 h-3 rounded-full flex-shrink-0"
+                                                            style={{ backgroundColor: category.couleur }}
+                                                        />
+                                                        <span className="text-sm text-text-secondary">{category.nom}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-sm text-text-secondary">Catégorie inconnue</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className={`text-right flex-shrink-0 ${transaction.type === 'revenu' ? 'text-positive' : 'text-negative'}`}>
+                                        <div className="font-semibold text-lg">
+                                            {transaction.type === 'revenu' ? '+' : '-'} {formatCurrency(transaction.montant)}
+                                        </div>
+                                        <div className="text-xs text-text-secondary mt-1">
+                                            {formatDate(transaction.date_transaction)}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Actions */}
+                                {(onView || onEdit || onDelete) && (
+                                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/50">
+                                        {onView && (
+                                            <button
+                                                onClick={() => onView(transaction)}
+                                                className="flex items-center gap-1 px-3 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                            >
+                                                <Eye size={14} />
+                                                Voir
+                                            </button>
+                                        )}
+                                        {onEdit && (
+                                            <button
+                                                onClick={() => onEdit(transaction)}
+                                                className="flex items-center gap-1 px-3 py-1 text-xs text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors"
+                                            >
+                                                <Edit size={14} />
+                                                Modifier
+                                            </button>
+                                        )}
+                                        {onDelete && (
+                                            <button
+                                                onClick={() => onDelete(transaction.id)}
+                                                className="flex items-center gap-1 px-3 py-1 text-xs text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                            >
+                                                <Trash2 size={14} />
+                                                Supprimer
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-6 pt-4 border-t border-border">
-                    <div className="text-sm text-text-secondary">
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-border gap-4">
+                    <div className="text-sm text-text-secondary text-center sm:text-left">
                         Affichage {startIndex + 1}-{Math.min(endIndex, processedTransactions.length)} sur {processedTransactions.length} transactions
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                             disabled={currentPage === 1}
-                            className="px-3 py-1 text-sm border border-border rounded-lg bg-background text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-border transition-colors"
+                            className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-border transition-colors min-w-[80px]"
                         >
-                            Précédent
+                            <span className="hidden sm:inline">Précédent</span>
+                            <span className="sm:hidden">←</span>
                         </button>
-                        <span className="px-3 py-1 text-sm text-text-secondary">
-                            Page {currentPage} sur {totalPages}
+                        <span className="px-3 py-2 text-sm text-text-secondary bg-background-surface rounded-lg">
+                            <span className="hidden sm:inline">Page {currentPage} sur {totalPages}</span>
+                            <span className="sm:hidden">{currentPage}/{totalPages}</span>
                         </span>
                         <button
                             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1 text-sm border border-border rounded-lg bg-background text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-border transition-colors"
+                            className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-text-primary disabled:opacity-50 disabled:cursor-not-allowed hover:bg-border transition-colors min-w-[80px]"
                         >
-                            Suivant
+                            <span className="hidden sm:inline">Suivant</span>
+                            <span className="sm:hidden">→</span>
                         </button>
                     </div>
                 </div>

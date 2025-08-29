@@ -165,7 +165,7 @@ const MobileSidebar = ({ isOpen, setIsOpen }: MobileSidebarProps) => (
             onClick={() => setIsOpen(false)}
         ></div>
         <div 
-            className={`fixed z-40 inset-y-0 left-0 w-72 bg-background-surface transition-transform duration-200 ease-in-out md:hidden shadow-lg ${
+            className={`fixed z-40 inset-y-0 left-0 w-72 sm:w-80 bg-background-surface transition-transform duration-200 ease-in-out md:hidden shadow-lg ${
                 isOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
         >
