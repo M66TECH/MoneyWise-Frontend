@@ -111,35 +111,65 @@ class AlertService {
     alertes: CustomAlert[],
     envoyerEmail: boolean = true
   ): Promise<AlertResponse> {
+    console.log('📤 Début de sendMultipleAlerts');
+    console.log('👤 ID utilisateur:', utilisateur_id);
+    console.log('📋 Alertes à envoyer:', alertes);
+    console.log('📧 Envoyer email:', envoyerEmail);
+    
     try {
       if (!this.token) {
+        console.error('❌ Token d\'authentification manquant');
         throw new Error('Token d\'authentification manquant');
       }
 
+      console.log('🌐 Envoi de la requête à:', `${API_BASE_URL}/notifications/send-multiple-alerts`);
+      
+      const requestData = {
+        utilisateur_id,
+        alertes,
+        envoyerEmail
+      };
+      
+      console.log('📤 Données de la requête:', requestData);
+
       const response = await axios.post(
         `${API_BASE_URL}/notifications/send-multiple-alerts`,
-        {
-          utilisateur_id,
-          alertes,
-          envoyerEmail
-        },
+        requestData,
         {
           headers: this.getAuthHeaders(),
           timeout: 15000
         }
       );
 
+      console.log('📥 Réponse reçue:', response.data);
       const result: AlertResponse = response.data;
       
       if (result.success) {
+        console.log('✅ Alertes envoyées avec succès');
         // Ajouter les alertes à la liste courante
         this.currentAlertes = [...this.currentAlertes, ...alertes];
         this.notifyAlertesChange(this.currentAlertes);
+      } else {
+        console.log('⚠️ Alertes envoyées mais avec des avertissements:', result.message);
       }
       
       return result;
     } catch (error: any) {
-      throw new Error('Erreur lors de l\'envoi d\'alertes multiples');
+      console.error('❌ Erreur lors de l\'envoi d\'alertes multiples:', error);
+      console.error('❌ Détails de l\'erreur:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
+      
+      // Retourner un résultat d'erreur au lieu de lancer une exception
+      return {
+        alertes: alertes,
+        emailSent: false,
+        message: `Erreur lors de l'envoi des alertes: ${error.message}`,
+        success: false
+      };
     }
   }
 
@@ -159,13 +189,13 @@ class AlertService {
         severite: 'critical',
         message: `🚨 URGENCE FINANCIÈRE : Votre compte présente un déficit de ${deficit.toLocaleString('fr-FR')} FCFA. 
         
-💡 Actions recommandées :
+ Actions recommandées :
 • Réduire immédiatement vos dépenses non essentielles
 • Identifier les sources de revenus supplémentaires
 • Considérer un prêt temporaire si nécessaire
 • Contacter votre conseiller financier
 
-⚠️ Ce déficit peut entraîner des frais bancaires supplémentaires.`,
+ Ce déficit peut entraîner des frais bancaires supplémentaires.`,
         code: 'SOLDE_NEGATIF'
       });
     }
@@ -180,12 +210,12 @@ class AlertService {
           severite: 'high',
           message: `⚠️ DÉPENSES EXCESSIVES : Vos dépenses (${depensesMensuelles.toLocaleString('fr-FR')} FCFA) consomment ${ratioDepenses.toFixed(1)}% de vos revenus (${revenusMensuels.toLocaleString('fr-FR')} FCFA).
 
-📊 Analyse :
+ Analyse :
 • Seuil critique : 80% (dépassé de ${(ratioDepenses - 80).toFixed(1)}%)
 • Épargne recommandée : ${economieRecommandee.toLocaleString('fr-FR')} FCFA/mois
 • Marge de sécurité : ${(revenusMensuels - depensesMensuelles).toLocaleString('fr-FR')} FCFA
 
-💡 Conseils :
+Conseils :
 • Réviser vos dépenses non essentielles
 • Établir un budget strict pour le mois prochain
 • Considérer la règle 50/30/20 (besoins/plaisirs/épargne)`,
@@ -206,18 +236,18 @@ class AlertService {
           severite: 'critical',
           message: `🚨 SEUIL CRITIQUE ATTEINT : Votre solde (${statistiques.solde.toLocaleString('fr-FR')} FCFA) ne couvre que ${ratioSolde.toFixed(1)}% de vos dépenses mensuelles (${depensesMensuelles.toLocaleString('fr-FR')} FCFA).
 
-📊 Situation critique :
+Situation critique :
 • Seuil minimum : 15% (actuellement ${ratioSolde.toFixed(1)}%)
 • Solde recommandé : ${soldeRecommandee.toLocaleString('fr-FR')} FCFA
 • Déficit de sécurité : ${deficit.toLocaleString('fr-FR')} FCFA
 
-🚨 Actions immédiates :
+Actions immédiates :
 • Réduire drastiquement vos dépenses
 • Identifier les sources de revenus d'urgence
 • Considérer un report de paiements non essentiels
 • Contacter vos créanciers pour des arrangements
 
-⚠️ Risque de découvert bancaire imminent !`,
+Risque de découvert bancaire imminent !`,
           code: 'SOLDE_CRITIQUE_DEPENSES'
         });
       }
@@ -235,18 +265,18 @@ class AlertService {
           severite: 'high',
           message: `⚠️ ALERTE PRÉVENTIVE : Votre solde (${statistiques.solde.toLocaleString('fr-FR')} FCFA) représente ${ratioSolde.toFixed(1)}% de vos dépenses mensuelles (${depensesMensuelles.toLocaleString('fr-FR')} FCFA).
 
-📊 Analyse préventive :
+Analyse préventive :
 • Marge avant seuil critique : ${margeSecurite.toFixed(1)}%
 • Économie nécessaire : ${economieNecessaire.toLocaleString('fr-FR')} FCFA pour atteindre 20%
 • Seuil critique : 15% (${(depensesMensuelles * 0.15).toLocaleString('fr-FR')} FCFA)
 
-💡 Actions recommandées :
+Actions recommandées :
 • Réduire vos dépenses de ${economieNecessaire.toLocaleString('fr-FR')} FCFA ce mois
 • Éviter les achats non essentiels
 • Augmenter vos revenus si possible
 • Établir un plan d'épargne d'urgence
 
-🔍 Surveillez attentivement vos finances cette semaine !`,
+Surveillez attentivement vos finances cette semaine !`,
           code: 'SOLDE_RAPPROCHE_CRITIQUE'
         });
       }
@@ -264,19 +294,19 @@ class AlertService {
         alertes.push({
           type: 'info',
           severite: 'low',
-          message: `📅 INACTIVITÉ DÉTECTÉE : Aucune transaction enregistrée depuis ${joursInactivite} jours.
+          message: `INACTIVITÉ DÉTECTÉE : Aucune transaction enregistrée depuis ${joursInactivite} jours.
 
-📊 Dernière activité :
+Dernière activité :
 • Date : ${derniereDate}
 • Période d'inactivité : ${joursInactivite} jours
 
-💡 Recommandations :
+Recommandations :
 • Mettre à jour vos transactions récentes
 • Vérifier vos relevés bancaires
 • Saisir les dépenses en attente
 • Planifier vos prochaines transactions
 
-🔍 Une mise à jour régulière améliore la précision de vos analyses !`,
+Une mise à jour régulière améliore la précision de vos analyses !`,
           code: 'INACTIVITE'
         });
       }
@@ -293,18 +323,18 @@ class AlertService {
           severite: 'low',
           message: `✅ EXCELLENTE GESTION FINANCIÈRE ! Vos finances sont en excellente santé.
 
-📊 Performance exceptionnelle :
+Performance exceptionnelle :
 • Dépenses : ${ratioDepenses.toFixed(1)}% de vos revenus (objectif < 60%)
 • Épargne mensuelle : ${epargne.toLocaleString('fr-FR')} FCFA
 • Taux d'épargne : ${tauxEpargne.toFixed(1)}%
 • Solde actuel : ${statistiques.solde.toLocaleString('fr-FR')} FCFA
 
-🎯 Objectifs atteints :
+Objectifs atteints :
 • ✅ Respect de la règle 50/30/20
 • ✅ Épargne significative
 • ✅ Solde positif confortable
 
-💡 Conseils pour maintenir :
+Conseils pour maintenir :
 • Continuez vos bonnes habitudes
 • Considérez investir votre épargne
 • Planifiez vos objectifs financiers à long terme
@@ -326,17 +356,17 @@ class AlertService {
           severite: 'medium',
           message: `📊 SOLDE POSITIF MAIS LIMITÉ : Votre solde (${statistiques.solde.toLocaleString('fr-FR')} FCFA) couvre ${ratioSolde.toFixed(1)}% de vos dépenses mensuelles.
 
-📈 Objectif d'amélioration :
+Objectif d'amélioration :
 • Solde recommandé : ${soldeRecommandee.toLocaleString('fr-FR')} FCFA (50% des dépenses)
 • Économie nécessaire : ${(soldeRecommandee - statistiques.solde).toLocaleString('fr-FR')} FCFA
 
-💡 Stratégies d'amélioration :
+Stratégies d'amélioration :
 • Augmenter progressivement votre épargne
 • Réduire les dépenses non essentielles
 • Chercher des sources de revenus supplémentaires
 • Établir un fonds d'urgence
 
-🎯 Vous êtes sur la bonne voie, continuez vos efforts !`,
+Vous êtes sur la bonne voie, continuez vos efforts !`,
           code: 'SOLDE_LIMITE'
         });
       }
@@ -350,17 +380,17 @@ class AlertService {
         severite: 'high',
         message: `⚠️ REVENUS INSUFFISANTS : Vos dépenses (${depensesMensuelles.toLocaleString('fr-FR')} FCFA) dépassent vos revenus (${revenusMensuels.toLocaleString('fr-FR')} FCFA).
 
-📊 Analyse du déficit :
+Analyse du déficit :
 • Déficit mensuel : ${deficit.toLocaleString('fr-FR')} FCFA
 • Taux de couverture : ${((revenusMensuels / depensesMensuelles) * 100).toFixed(1)}%
 
-🚨 Actions prioritaires :
+Actions prioritaires :
 • Réduire immédiatement vos dépenses de ${deficit.toLocaleString('fr-FR')} FCFA
 • Identifier et éliminer les dépenses non essentielles
 • Chercher des sources de revenus supplémentaires
 • Considérer un second emploi ou des activités freelance
 
-⚠️ Cette situation n'est pas durable à long terme !`,
+Cette situation n'est pas durable à long terme !`,
         code: 'REVENUS_INSUFFISANTS'
       });
     }
@@ -370,15 +400,18 @@ class AlertService {
 
   // Vérifier les alertes avec détermination automatique
   async checkAlerts(statistiques: FinancialStats, envoyerEmail: boolean = true): Promise<AlertResponse> {
+    // Déclarer alertes en dehors du try pour qu'elle soit accessible dans le catch
+    let alertes: CustomAlert[] = [];
+    
     try {
       // Déterminer les alertes basées sur les statistiques
-      const alertes = this.determinerAlertes(statistiques);
+      alertes = this.determinerAlertes(statistiques);
       
       if (alertes.length === 0) {
         this.currentAlertes = [];
         this.notifyAlertesChange([]);
         return {
-          alertes: [],
+          alertes: alertes,
           emailSent: false,
           message: 'Aucune alerte détectée',
           success: true
@@ -396,12 +429,28 @@ class AlertService {
         throw new Error('Impossible de récupérer l\'ID utilisateur');
       }
 
-      // Envoyer les alertes via l'API
+      // Essayer d'abord l'endpoint check-user selon la documentation
+      try {
+        const checkResult = await this.checkUserAlerts(utilisateur_id, alertes, envoyerEmail);
+        if (checkResult.success) {
+          return checkResult;
+        }
+      } catch (checkError) {
+        // Fallback vers l'ancien endpoint
+      }
+
+      // Fallback vers l'ancien endpoint
       const result = await this.sendMultipleAlerts(utilisateur_id, alertes, envoyerEmail);
       
       return result;
     } catch (error: any) {
-      throw error;
+      // Retourner un résultat d'erreur au lieu de lancer une exception
+      return {
+        alertes: alertes || [],
+        emailSent: false,
+        message: `Erreur lors de la vérification des alertes: ${error.message}`,
+        success: false
+      };
     }
   }
 
@@ -465,54 +514,47 @@ class AlertService {
     }
   }
 
-  // Méthode de test pour simuler des alertes (pour le développement)
-  async testAlertes(): Promise<AlertResponse> {
-
-    
-    const alertesTest: CustomAlert[] = [
-      {
-        type: 'danger',
-        message: '🚨 Votre solde est négatif : -50,000 FCFA',
-        severite: 'critical',
-        code: 'SOLDE_NEGATIF'
-      },
-      {
-        type: 'warning',
-        message: '⚠️ Vos dépenses représentent 85% de vos revenus',
-        severite: 'high',
-        code: 'DEPENSES_ELEVEES'
-      },
-      {
-        type: 'warning',
-        message: '⚠️ ATTENTION : Votre solde représente 18% de vos dépenses. Vous vous rapprochez du seuil critique !',
-        severite: 'high',
-        code: 'SOLDE_RAPPROCHE_CRITIQUE'
-      },
-      {
-        type: 'info',
-        message: '💰 Votre solde représente seulement 10% de vos dépenses',
-        severite: 'medium',
-        code: 'SOLDE_FAIBLE_DEPENSES'
+  // Méthode pour vérifier les alertes utilisateur selon la documentation backend
+  async checkUserAlerts(
+    utilisateur_id: number,
+    alertes: CustomAlert[],
+    envoyerEmail: boolean = true
+  ): Promise<AlertResponse> {
+    try {
+      if (!this.token) {
+        throw new Error('Token d\'authentification manquant');
       }
-    ];
 
-    const result: AlertResponse = {
-      alertes: alertesTest,
-      emailSent: false,
-      message: 'Test des alertes réussi',
-      success: true
-    };
+      const requestData = {
+        utilisateur_id,
+        alertes,
+        envoyerEmail
+      };
 
-    // Mettre à jour les alertes courantes
-    this.currentAlertes = alertesTest;
-    
-    // Notifier les callbacks
-    this.notifyAlertesChange(alertesTest);
-    
+      const response = await axios.post(
+        `${API_BASE_URL}/notifications/check-user`,
+        requestData,
+        {
+          headers: this.getAuthHeaders(),
+          timeout: 15000
+        }
+      );
 
-    
-    return result;
+      const result: AlertResponse = response.data;
+      
+      if (result.success) {
+        // Ajouter les alertes à la liste courante
+        this.currentAlertes = [...this.currentAlertes, ...alertes];
+        this.notifyAlertesChange(this.currentAlertes);
+      }
+      
+      return result;
+    } catch (error: any) {
+      throw error; // Relancer l'erreur pour le fallback
+    }
   }
+
+
 
   // Envoyer un email d'alertes (méthode legacy pour compatibilité)
   async sendAlertEmail(forceSend: boolean = false): Promise<AlertResponse> {
@@ -521,8 +563,6 @@ class AlertService {
         throw new Error('Token d\'authentification manquant');
       }
 
-  
-      
       const response = await axios.post(
         `${API_BASE_URL}/notifications/send-email`,
         { forceSend },
@@ -534,12 +574,8 @@ class AlertService {
 
       const result: AlertResponse = response.data;
       
-  
-      
       return result;
     } catch (error: any) {
-      console.error('❌ Erreur lors de l\'envoi d\'email:', error);
-      
       let errorMessage = 'Erreur lors de l\'envoi d\'email';
       
       if (error.response?.status === 401) {
@@ -576,8 +612,6 @@ class AlertService {
       
       return status;
     } catch (error: any) {
-      console.error('❌ Erreur lors de la récupération du statut:', error);
-      
       // Retourner un statut par défaut en cas d'erreur
       return {
         isRunning: false,
@@ -592,15 +626,13 @@ class AlertService {
       this.stopAutoCheck();
     }
 
-
-    
     this.autoCheckInterval = window.setInterval(async () => {
       try {
         // Note: Pour l'auto-check, vous devrez passer les statistiques
         // Cette méthode devra être adaptée selon votre logique
     
       } catch (error) {
-        console.error('❌ Erreur lors de la vérification automatique:', error);
+        // Gestion silencieuse de l'erreur
       }
     }, intervalMinutes * 60 * 1000);
 
@@ -632,7 +664,7 @@ class AlertService {
       try {
         callback(alertes);
       } catch (error) {
-        console.error('❌ Erreur dans le callback d\'alertes:', error);
+        // Gestion silencieuse de l'erreur
       }
     });
   }
@@ -643,7 +675,7 @@ class AlertService {
       try {
         callback(status);
       } catch (error) {
-        console.error('❌ Erreur dans le callback de statut:', error);
+        // Gestion silencieuse de l'erreur
       }
     });
   }
@@ -691,7 +723,6 @@ class AlertService {
       await this.getStatus();
       return true;
     } catch (error) {
-      console.error('❌ Test de connexion échoué:', error);
       return false;
     }
   }
