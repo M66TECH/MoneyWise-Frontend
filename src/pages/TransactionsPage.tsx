@@ -29,17 +29,6 @@ const TransactionsPage = () => {
         return null;
     };
     
-    // Fonction utilitaire pour extraire l'ID utilisateur
-    const getUserId = (userData: any): number | null => {
-        if (!userData) return null;
-        
-        // Essayer différentes structures possibles
-        if (userData.utilisateur?.id) return userData.utilisateur.id;
-        if (userData.id) return userData.id;
-        if (typeof userData === 'object' && userData.id) return userData.id;
-        
-        return null;
-    };
     const [categories, setCategories] = useState<Category[]>([]);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
