@@ -439,8 +439,10 @@ Cette situation n'est pas durable à long terme !`,
         // Fallback vers l'ancien endpoint
       }
 
-      // Fallback vers l'ancien endpoint
+      // Fallback vers l'ancien endpointt
       const result = await this.sendMultipleAlerts(utilisateur_id, alertes, envoyerEmail);
+      
+
       
       return result;
     } catch (error: any) {
