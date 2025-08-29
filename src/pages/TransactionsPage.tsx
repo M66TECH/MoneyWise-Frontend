@@ -204,41 +204,7 @@ const TransactionsPage = () => {
         }
     };
 
-    const handleDiagnostic = async () => {
-        console.log('🔍 Lancement du diagnostic des transactions...');
-        const result = await runTransactionDiagnostic();
-        console.log('📊 Résultat du diagnostic:', result);
-        
-        if (result.success) {
-            toast.success('Diagnostic réussi ! Vérifiez la console pour les détails.');
-        } else {
-            toast.error(`Diagnostic échoué: ${result.error}`);
-        }
-    };
 
-    const handleApiDiagnostic = async () => {
-        console.log('🌐 Lancement du diagnostic API...');
-        const result = await runApiDiagnostic();
-        console.log('📊 Résultat du diagnostic API:', result);
-        
-        if (result.success) {
-            toast.success('Diagnostic API réussi ! Vérifiez la console pour les détails.');
-        } else {
-            toast.error(`Diagnostic API échoué: ${result.error}`);
-        }
-    };
-
-    const handleCategoryDiagnostic = async () => {
-        console.log('📂 Lancement du diagnostic des catégories...');
-        const result = await runCategoryDiagnostic();
-        console.log('📊 Résultat du diagnostic des catégories:', result);
-        
-        if (result.success) {
-            toast.success(`Diagnostic des catégories réussi ! ${result.count} catégories trouvées.`);
-        } else {
-            toast.error(`Diagnostic des catégories échoué: ${result.error}`);
-        }
-    };
 
     const handleTransactionSubmit = async (data: CreateTransactionData | UpdateTransactionData) => {
         try {
