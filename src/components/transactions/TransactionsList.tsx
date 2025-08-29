@@ -181,7 +181,7 @@ const TransactionsList = ({
             </div>
 
             {/* Tableau */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-w-full">
                 {currentTransactions.length === 0 ? (
                     <div className="text-center py-8 text-text-secondary">
                         {processedTransactions.length === 0 ? 'Aucune transaction trouvée' : 'Aucune transaction sur cette page'}

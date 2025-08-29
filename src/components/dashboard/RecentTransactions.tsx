@@ -66,7 +66,7 @@ const RecentTransactions = ({
                     Voir tout
                 </Link>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-w-full">
                 {safeTransactions.length === 0 ? (
                     <div className="text-center py-8 text-text-secondary">
                         Aucune transaction récente

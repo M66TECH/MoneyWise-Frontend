@@ -245,12 +245,12 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-background text-text-primary">
+        <div className="flex h-screen bg-background text-text-primary overflow-hidden">
             <Sidebar />
             <MobileSidebar isOpen={isMobileNavOpen} setIsOpen={setIsMobileNavOpen} />
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0">
                 <Header title={title} onMenuClick={() => setIsMobileNavOpen(true)} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-4 sm:p-6">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 sm:p-6">
                     {children}
                 </main>
             </div>
